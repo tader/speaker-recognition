@@ -43,7 +43,9 @@ async def async_setup_main_entry(
     hass: HomeAssistant, entry: SpeakerRecognitionConfigEntry
 ) -> bool:
     """Set up main config entry."""
-    backend_url = entry.data.get(CONF_BACKEND_URL, DEFAULT_BACKEND_URL)
+    backend_url = entry.options.get(
+        CONF_BACKEND_URL, entry.data.get(CONF_BACKEND_URL, DEFAULT_BACKEND_URL)
+    )
     voice_samples = entry.options.get(CONF_VOICE_SAMPLES, [])
 
     recognition = SpeakerRecognition(hass, voice_samples, backend_url)
