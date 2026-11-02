@@ -200,68 +200,67 @@ class SpeakerRecognitionConversationEntity(
             )
             return ConversationResult(response=response, conversation_id=None)
 
-        # Check if we should enrich the user_id with speaker recognition
-        # Check for speaker recognition data
+        # Default: tell the agent the speaker is unknown unless we recognise them
+        speaker_prompt = "The speaker is unknown (voice not recognized)."
+        context = user_input.context
+
         speaker_data = self.hass.data.get("speaker_recognition", {}).get("last_result")
 
         if speaker_data:
-            # Get minimum confidence from options or data
             min_confidence = self._config_entry.options.get(
                 CONF_MIN_CONFIDENCE,
                 self._config_entry.data.get(CONF_MIN_CONFIDENCE, 0.7),
             )
-
             confidence = speaker_data.get("confidence", 0)
             recognized_user_id = speaker_data.get("user_id")
+            age = self.hass.loop.time() - speaker_data.get("timestamp", 0)
 
-            # Check if confidence is above threshold
-            if confidence >= min_confidence and recognized_user_id:
-                # Check if result is recent (within last 5 seconds)
-                timestamp = speaker_data.get("timestamp", 0)
-                age = self.hass.loop.time() - timestamp
-
-                if age < 5.0:  # 5 second window
-                    # Enrich if: no user_id OR different user_id from recognition
-                    should_enrich = (
-                        user_input.context.user_id is None
-                        or user_input.context.user_id != recognized_user_id
-                    )
-
-                    if should_enrich:
-                        _LOGGER.info(
-                            "Enriching conversation with speaker recognition: "
-                            "original_user_id=%s, recognized_user_id=%s, confidence=%.3f",
-                            user_input.context.user_id,
-                            recognized_user_id,
-                            confidence,
-                        )
-
-                        # Create new context with user_id
-                        enriched_context = Context(
-                            user_id=recognized_user_id,
-                            parent_id=user_input.context.parent_id,
-                            id=user_input.context.id,
-                        )
-
-                        # Create new input with enriched context
-                        user_input = ConversationInput(
-                            text=user_input.text,
-                            context=enriched_context,
-                            conversation_id=user_input.conversation_id,
-                            device_id=user_input.device_id,
-                            satellite_id=user_input.satellite_id,
-                            language=user_input.language,
-                            agent_id=user_input.agent_id,
-                            extra_system_prompt=user_input.extra_system_prompt,
-                        )
-                else:
-                    _LOGGER.debug("Speaker recognition data too old: %.1f seconds", age)
-            else:
+            if age >= 5.0:
+                _LOGGER.debug("Speaker recognition data too old: %.1f seconds", age)
+            elif confidence < min_confidence or not recognized_user_id:
                 _LOGGER.debug(
                     "Speaker recognition confidence %.3f below threshold %.3f",
                     confidence,
                     min_confidence,
                 )
+            else:
+                user = await self.hass.auth.async_get_user(recognized_user_id)
+                speaker_name = user.name if user and user.name else recognized_user_id
+                _LOGGER.info(
+                    "Enriching conversation with speaker recognition: "
+                    "original_user_id=%s, recognized_user_id=%s (%s), "
+                    "confidence=%.3f",
+                    context.user_id,
+                    recognized_user_id,
+                    speaker_name,
+                    confidence,
+                )
+                speaker_prompt = (
+                    f"The speaker is {speaker_name} "
+                    f"(voice recognition confidence {confidence:.2f})."
+                )
+                if context.user_id != recognized_user_id:
+                    context = Context(
+                        user_id=recognized_user_id,
+                        parent_id=context.parent_id,
+                        id=context.id,
+                    )
+
+        extra_prompt = (
+            f"{user_input.extra_system_prompt}\n{speaker_prompt}"
+            if user_input.extra_system_prompt
+            else speaker_prompt
+        )
+        user_input = ConversationInput(
+            text=user_input.text,
+            context=context,
+            conversation_id=user_input.conversation_id,
+            device_id=user_input.device_id,
+            satellite_id=user_input.satellite_id,
+            language=user_input.language,
+            agent_id=user_input.agent_id,
+            extra_system_prompt=extra_prompt,
+        )
 
         # Forward to source agent
         return await source_agent.async_process(user_input)
