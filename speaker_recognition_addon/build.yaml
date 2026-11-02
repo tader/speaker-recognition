@@ -1,9 +1,0 @@
-build_from:
-  amd64: "ghcr.io/home-assistant/amd64-base:3.23"
-labels:
-  org.opencontainers.image.title: "Home Assistant Add-on: Speaker Recognition"
-  org.opencontainers.image.description: "Speaker recognition service using voice embeddings for identification."
-  org.opencontainers.image.source: "https://github.com/eulemitkeule/speaker-recognition"
-  org.opencontainers.image.licenses: "MIT"
-args:
-  TEMPIO_VERSION: "2021.09.0"
