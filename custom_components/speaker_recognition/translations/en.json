@@ -2,80 +2,106 @@
   "config": {
     "step": {
       "user": {
-        "title": "Choose helper type",
-        "description": "Select the type of speaker recognition helper to create.",
-        "data": {
-          "helper_type": "Helper type"
+        "title": "Speaker Recognition",
+        "description": ""
+      },
+      "menu": {
+        "title": "What do you want to add?",
+        "description": "STT wrapper: listens to the audio and recognizes who is speaking (fires the speaker_recognition_detected event). Conversation wrapper: passes the recognized speaker on as the user of the request. Add the STT wrapper first.",
+        "menu_options": {
+          "add_stt": "STT wrapper (recognizes the speaker from audio)",
+          "add_conversation": "Conversation agent wrapper (passes the speaker on)"
         }
       },
-      "stt": {
-        "title": "Set up STT proxy",
-        "description": "Configure the STT entity and voice samples for speaker recognition.",
+      "main": {
+        "title": "Speaker Recognition service",
+        "description": "Backend service and voice samples. Samples must be WAV, 16 kHz mono, in the Home Assistant media folder.",
         "data": {
-          "stt_entity": "Speech-to-text entity",
+          "backend_url": "Backend URL",
           "voice_samples": "Voice samples"
         },
         "data_description": {
-          "stt_entity": "Select the STT entity to use for speaker recognition",
-          "voice_samples": "Configure voice samples for each user to enable speaker recognition"
+          "backend_url": "Address of the speaker recognition service, e.g. http://192.168.1.65:8099",
+          "voice_samples": "Per user one or more audio files; multiple files are combined into one voice profile"
         }
       },
-      "conversation": {
-        "title": "Set up Conversation proxy",
-        "description": "Configure the conversation agent and minimum confidence threshold.",
+      "add_stt": {
+        "title": "Add STT wrapper",
+        "description": "Wraps an existing speech-to-text entity and recognizes the speaker from the audio. Select it as speech-to-text in your Assist pipeline.",
+        "data": {
+          "stt_entity": "Speech-to-text entity"
+        },
+        "data_description": {
+          "stt_entity": "The STT entity to wrap"
+        }
+      },
+      "add_conversation": {
+        "title": "Add conversation agent wrapper",
+        "description": "Wraps an existing conversation agent and sets the recognized speaker as the user of the request. Requires the STT wrapper in the same pipeline.",
         "data": {
           "conversation_entity": "Conversation agent",
           "min_confidence": "Minimum confidence"
         },
         "data_description": {
-          "conversation_entity": "Select the conversation agent to wrap",
-          "min_confidence": "Minimum recognition confidence required to set user ID (0.0-1.0)"
+          "conversation_entity": "The conversation agent to wrap",
+          "min_confidence": "Minimum recognition confidence (0.0-1.0) before the speaker is passed on"
         }
       }
     },
     "error": {
       "not_stt_entity": "The selected entity is not a speech-to-text entity",
-      "not_conversation_entity": "The selected entity is not a conversation agent",
-      "user_already_configured": "Voice samples for this user have already been configured"
+      "not_conversation_entity": "The selected entity is not a conversation agent"
+    },
+    "abort": {
+      "already_configured": "This is already configured"
     }
   },
   "options": {
     "step": {
-      "stt_options": {
-        "title": "Configure STT proxy",
-        "description": "Update the STT entity and voice samples.",
+      "main_options": {
+        "title": "Speaker Recognition service",
+        "description": "Backend service and voice samples. Samples must be WAV, 16 kHz mono, in the Home Assistant media folder.",
         "data": {
-          "stt_entity": "Speech-to-text entity",
+          "backend_url": "Backend URL",
           "voice_samples": "Voice samples"
         },
         "data_description": {
-          "stt_entity": "Select the STT entity to use for speaker recognition",
-          "voice_samples": "Add or modify voice samples for speaker recognition"
+          "backend_url": "Address of the speaker recognition service, e.g. http://192.168.1.65:8099",
+          "voice_samples": "Per user one or more audio files; multiple files are combined into one voice profile"
+        }
+      },
+      "stt_options": {
+        "title": "Add STT wrapper",
+        "data": {
+          "stt_entity": "Speech-to-text entity"
+        },
+        "data_description": {
+          "stt_entity": "The STT entity to wrap"
         }
       },
       "conversation_options": {
-        "title": "Configure Conversation proxy",
-        "description": "Update the conversation agent and minimum confidence threshold.",
+        "title": "Add conversation agent wrapper",
         "data": {
           "conversation_entity": "Conversation agent",
           "min_confidence": "Minimum confidence"
         },
         "data_description": {
-          "conversation_entity": "Select the conversation agent to wrap",
-          "min_confidence": "Minimum recognition confidence required to set user ID (0.0-1.0)"
+          "conversation_entity": "The conversation agent to wrap",
+          "min_confidence": "Minimum recognition confidence (0.0-1.0) before the speaker is passed on"
         }
       }
     },
     "error": {
       "not_stt_entity": "The selected entity is not a speech-to-text entity",
-      "not_conversation_entity": "The selected entity is not a conversation agent",
-      "user_already_configured": "Voice samples for this user have already been configured"
+      "not_conversation_entity": "The selected entity is not a conversation agent"
     }
   },
   "selector": {
     "voice_samples": {
-      "user": "User",
-      "samples": "Audio file"
+      "fields": {
+        "user": "User",
+        "samples": "Audio files"
+      }
     }
   }
 }
