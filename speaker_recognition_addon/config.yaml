@@ -1,8 +1,9 @@
 name: Speaker Recognition
-version: "0.0.0-dev"
+version: "1.0.12"
 slug: speaker_recognition
 description: Speaker recognition service using voice embeddings for identification
-url: https://github.com/eulemitkeule/speaker-recognition/tree/master/speaker_recognition_addon
+url: https://github.com/tader/speaker-recognition/tree/master/speaker_recognition_addon
+image: ghcr.io/eulemitkeule/speaker-recognition
 arch:
   - amd64
 init: false
@@ -11,17 +12,3 @@ ports:
   8099/tcp: 8099
 ports_description:
   8099/tcp: Speaker Recognition API
-map:
-  - share:rw
-options:
-  host: "0.0.0.0"
-  port: 8099
-  log_level: "info"
-  access_log: true
-  embeddings_dir: "/share/speaker_recognition/embeddings"
-schema:
-  host: str
-  port: port
-  log_level: list(debug|info|warning|error|critical)
-  access_log: bool
-  embeddings_dir: str
