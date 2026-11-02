@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import base64
+import io
 import logging
+import wave
 from pathlib import Path
+from urllib.parse import unquote
 from typing import TYPE_CHECKING
 
 from speaker_recognition import SpeakerRecognitionClient
@@ -20,6 +23,14 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _wav_to_pcm(raw: bytes) -> bytes:
+    """Return raw 16-bit PCM from a WAV file (header stripped); pass other data through."""
+    if raw[:4] == b"RIFF":
+        with wave.open(io.BytesIO(raw)) as wav:
+            return wav.readframes(wav.getnframes())
+    return raw
 
 DEFAULT_ADDON_URL = "http://localhost:8099"
 
@@ -61,32 +72,36 @@ class SpeakerRecognition:
             voice_sample_models = []
             for sample in self.voice_samples:
                 user_id = sample["user"]
-                media_id = sample["samples"].get("media_content_id", "")
+                files = sample["samples"]
+                # The media selector (multiple=True) returns a list of dicts.
+                if isinstance(files, dict):
+                    files = [files]
 
-                if media_id.startswith("media-source://media_source/local/"):
-                    relative_path = media_id.replace(
-                        "media-source://media_source/local/", ""
+                pcm = bytearray()
+                for item in files:
+                    media_id = item.get("media_content_id", "")
+                    prefix = "media-source://media_source/local/"
+                    if not media_id.startswith(prefix):
+                        _LOGGER.warning("Unsupported media_content_id: %s", media_id)
+                        continue
+                    full_path = Path(self.hass.config.path("media")) / unquote(
+                        media_id[len(prefix) :]
                     )
-                    full_path = Path(self.hass.config.path("media")) / relative_path
+                    raw = await self.hass.async_add_executor_job(full_path.read_bytes)
+                    pcm.extend(_wav_to_pcm(raw))
 
-                    # Read the audio file
-                    audio_data = await self.hass.async_add_executor_job(
-                        full_path.read_bytes
-                    )
-                    audio_base64 = base64.b64encode(audio_data).decode("utf-8")
-
-                    voice_sample_models.append(
-                        VoiceSample(
-                            user=user_id,
-                            audio=AudioInput(
-                                audio_data=audio_base64,
-                                sample_rate=16000,
-                            ),
-                        )
-                    )
-                else:
-                    _LOGGER.warning("Unsupported media_content_id format: %s", media_id)
+                if not pcm:
                     continue
+
+                voice_sample_models.append(
+                    VoiceSample(
+                        user=user_id,
+                        audio=AudioInput(
+                            audio_data=base64.b64encode(bytes(pcm)).decode("utf-8"),
+                            sample_rate=16000,
+                        ),
+                    )
+                )
 
             if not voice_sample_models:
                 _LOGGER.warning("No valid training samples prepared")
@@ -103,7 +118,7 @@ class SpeakerRecognition:
             self._trained = True
             _LOGGER.info(
                 "Speaker recognition training completed: %d users trained",
-                result.users_trained,
+                getattr(result, "count", None) or len(getattr(result, "trained_users", [])),
             )
 
     async def async_recognize(
