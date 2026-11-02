@@ -84,7 +84,10 @@ class SpeakerRecognition:
                     if not media_id.startswith(prefix):
                         _LOGGER.warning("Unsupported media_content_id: %s", media_id)
                         continue
-                    full_path = Path(self.hass.config.path("media")) / unquote(
+                    full_path = Path(
+                        self.hass.config.media_dirs.get("local")
+                        or self.hass.config.path("media")
+                    ) / unquote(
                         media_id[len(prefix) :]
                     )
                     raw = await self.hass.async_add_executor_job(full_path.read_bytes)
