@@ -13,5 +13,5 @@
   "requirements": [
     "hass-speaker-recognition>=0.0.0-dev"
   ],
-  "version": "1.0.12.1"
+  "version": "1.0.12.2"
 }
