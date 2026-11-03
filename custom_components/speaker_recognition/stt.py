@@ -46,7 +46,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up Speaker Recognition STT platform via config entry."""
     registry = er.async_get(hass)
-    stt_entity_id = config_entry.data[CONF_STT_ENTITY]
+    stt_entity_id = config_entry.options.get(
+        CONF_STT_ENTITY, config_entry.data[CONF_STT_ENTITY]
+    )
     entity_id = er.async_validate_entity_id(registry, stt_entity_id)
 
     main_entry = _get_main_entry(hass)
